@@ -1,0 +1,36 @@
+# Run the whole app:   docker compose up --build
+# Then open:            http://localhost:8080
+#
+# Secrets come from .env at runtime (never baked into an image).
+# Recipes, audio and photos live in the named volume "salt-data" and survive restarts.
+
+services:
+  api:
+    build: ./backend
+    env_file: .env
+    environment:
+      APP_ENV: production
+      DATA_DIR: /srv/data
+      # Same origin through nginx; this only matters if you call the API directly.
+      CORS_ORIGINS: http://localhost:8080
+    volumes:
+      - salt-data:/srv/data
+    restart: unless-stopped
+    # Not published: only the web container talks to it.
+    expose:
+      - "8000"
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ""   # same origin: nginx proxies /api, /media, /health to the api service
+    ports:
+      - "8080:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  salt-data:

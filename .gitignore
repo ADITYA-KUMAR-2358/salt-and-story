@@ -1,0 +1,28 @@
+# dependencies and builds
+node_modules/
+dist/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+*.pdf
+
+# local data: recipes, audio, photos (may be real family content)
+data/
+backend/data/
+
+# secrets: never commit. Only .env.example is tracked.
+.env
+.env.*
+!.env.example
+frontend/.env
+*.pem
+*.key
+
+# machine-local tool settings
+.claude/settings.local.json
+.impeccable/config.local.json
+.impeccable/cache/
+
+# local Windows PDF libraries (backend/.gtk, created by scripts/setup-pdf-windows.ps1)
+backend/.gtk/

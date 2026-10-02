@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{ title }}</title>
+<style>
+  @font-face { font-family: "Lora"; src: url("{{ fonts_uri }}/Lora.ttf"); font-weight: 400 700; }
+  @font-face { font-family: "Lora"; src: url("{{ fonts_uri }}/Lora-Italic.ttf"); font-weight: 400 700; font-style: italic; }
+
+  /* Same kitchen as the app: basil, herb ink, marigold, sage. */
+  :root { --herb: #1e3a2c; --basil: #2e6b4c; --marigold: #f5b83d; --sage: #e8f0de; --muted: #4a6355; }
+
+  /*
+    Every recipe is a spread, like a real cookbook:
+      opener page: photo, title, story, and the cook's own words
+      recipe page(s): ingredients, method, good to know
+    Continuation pages carry the recipe name in a running header, steps never split,
+    and headings never sit alone at the bottom of a page.
+  */
+  @page {
+    size: A5; margin: 20mm 16mm 20mm;
+    @top-center { content: string(recipe); font: italic 8.5pt "Lora", serif; color: var(--muted); }
+    @bottom-center { content: counter(page); font: 9pt "Lora", serif; color: var(--muted); }
+  }
+  @page cover { margin: 0; @top-center { content: none; } @bottom-center { content: none; } }
+  @page front { @top-center { content: none; } }
+  @page opener { margin: 16mm 16mm 18mm; @top-center { content: none; } }
+  @page closing { @top-center { content: none; } @bottom-center { content: none; } }
+
+  body { font-family: "Lora", Georgia, serif; font-size: 10.5pt; line-height: 1.55; color: var(--herb); orphans: 3; widows: 3; }
+  h1, h2, h3 { font-weight: 700; line-height: 1.15; margin: 0; }
+  h3 { break-after: avoid; }
+
+  /* cover: basil cloth with a gingham band, like a tea towel folded over a book */
+  .cover { page: cover; height: 210mm; box-sizing: border-box; padding: 0 18mm; color: #f6fbf2; background: var(--basil); }
+  .cover .band { height: 26mm; margin: 0 -18mm;
+    background-color: #fff6dc;
+    background-image:
+      linear-gradient(90deg, rgba(245,184,61,.55) 50%, transparent 50%),
+      linear-gradient(rgba(245,184,61,.55) 50%, transparent 50%);
+    background-size: 8mm 8mm; }
+  .cover h1 { font-size: 36pt; margin-top: 30mm; }
+  .cover .tagline { font-style: italic; font-size: 13pt; margin-top: 6mm; color: #d6ead9; }
+  .cover .sub { margin-top: 26mm; font-size: 11pt; color: #d6ead9; }
+  .cover .ded { margin-top: 5mm; font-style: italic; font-size: 15pt; color: var(--marigold); }
+
+  .toc { page: front; break-before: page; }
+  .toc h2 { font-size: 22pt; margin-bottom: 8mm; }
+  .toc ol { list-style: none; padding: 0; margin: 0; }
+  .toc li { margin-bottom: 3.2mm; font-size: 11.5pt; }
+  .toc li .who { display: block; font-size: 9pt; font-style: italic; color: var(--muted); }
+  .toc a { color: inherit; text-decoration: none; }
+  .toc a::after { content: leader(".") " " target-counter(attr(href), page); color: var(--muted); }
+
+  /* ---- opener page */
+  .opener { page: opener; break-before: page; }
+  .opener h2 { font-size: 23pt; string-set: recipe content(); }
+  .photo { display: block; width: 100%; height: 64mm; object-fit: cover; border-radius: 3mm; margin-bottom: 7mm; }
+  .no-photo { height: 22mm; margin-bottom: 7mm; border-radius: 3mm;
+    background-color: #fff6dc;
+    background-image:
+      linear-gradient(90deg, rgba(245,184,61,.5) 50%, transparent 50%),
+      linear-gradient(rgba(245,184,61,.5) 50%, transparent 50%);
+    background-size: 6mm 6mm; }
+  .who-line { margin-top: 2mm; font-size: 10pt; color: var(--muted); }
+  .meta { color: var(--muted); font-size: 9.5pt; margin-top: 1.5mm; }
+  .story { font-style: italic; margin: 4mm 0 0; line-height: 1.5; }
+  .quote { margin-top: 6mm; padding: 5mm 4mm 0; text-align: center; font-style: italic; font-size: 14pt;
+    line-height: 1.35; color: var(--basil); border-top: 0.3mm solid #d3e0c9; break-inside: avoid; }
+  .quote::before { content: "\201C"; display: block; font-size: 30pt; line-height: .6; color: var(--marigold); }
+  .quote .who { display: block; margin-top: 3mm; font-size: 9pt; font-style: normal; color: var(--muted); }
+
+  /* ---- recipe page(s) */
+  .body { break-before: page; }
+  .body h3 { font-size: 13pt; color: var(--basil); margin: 0 0 3mm; }
+  .body { font-size: 10pt; line-height: 1.5; }
+  .body h3.later { margin-top: 6mm; }
+  .ingredients { columns: 2; column-gap: 8mm; list-style: none; padding: 0; margin: 0; }
+  .ingredients li { break-inside: avoid; margin-bottom: 1.4mm; }
+  .ingredients .qty { font-weight: 700; }
+  .ingredients .note { color: var(--muted); font-style: italic; }
+  ol.steps { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+  ol.steps li { break-inside: avoid; counter-increment: step; position: relative; padding-left: 8.5mm; margin-bottom: 2.3mm; }
+  ol.steps li::before { content: counter(step); position: absolute; left: 0; top: 0.2mm; width: 6mm; height: 6mm;
+    border-radius: 3mm; background: #fff1cc; color: var(--herb); font-weight: 700; font-size: 8.5pt; line-height: 6mm; text-align: center; }
+  .tips { background: var(--sage); border-radius: 3mm; padding: 3.5mm 5mm; margin-top: 5mm; break-inside: avoid; }
+  .tips h3 { margin: 0 0 2mm; color: var(--herb); font-size: 11pt; }
+  .tips ul { margin: 0; padding-left: 4mm; }
+  .empty { color: var(--muted); font-style: italic; }
+
+  .closing { page: closing; break-before: page; text-align: center; padding-top: 55mm; }
+  .closing p { font-style: italic; font-size: 13pt; max-width: 80mm; margin: 0 auto 6mm; }
+  .closing .mark { font-weight: 700; font-style: normal; font-size: 11pt; }
+
+  /* single-recipe PDF: no cover, so the opener starts the document */
+  .single .opener:first-child { break-before: auto; }
+</style>
+</head>
+<body class="{{ 'single' if single else '' }}">
+{% if not single %}
+<section class="cover">
+  <div class="band"></div>
+  <h1>{{ title }}</h1>
+  <div class="tagline">{{ tagline }}</div>
+  {% if subtitle %}<div class="sub">{{ subtitle }}</div>{% endif %}
+  {% if dedication %}<div class="ded">For {{ dedication }}</div>{% endif %}
+</section>
+
+<section class="toc">
+  <h2>Contents</h2>
+  <ol>
+    {% for r in recipes %}<li><a href="#r{{ r.id }}">{{ r.title }}</a>{% if r.speaker_name %}<span class="who">{{ r.speaker_name }}</span>{% endif %}</li>{% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+{% for r in recipes %}
+{% set bits = [] %}
+{% if r.servings %}{% set _ = bits.append("Serves " ~ r.servings) %}{% endif %}
+{% if r.prep_time %}{% set _ = bits.append("Prep " ~ r.prep_time) %}{% endif %}
+{% if r.cook_time %}{% set _ = bits.append("Cook " ~ r.cook_time) %}{% endif %}
+
+<section class="opener" id="r{{ r.id }}">
+  {% if photos[r.id] %}<img class="photo" src="{{ photos[r.id] }}" alt="">{% else %}<div class="no-photo"></div>{% endif %}
+  <h2>{{ r.title }}</h2>
+  {% if r.speaker_name %}<div class="who-line">From {{ r.speaker_name }}</div>{% endif %}
+  {% if bits %}<div class="meta">{{ bits | join(", ") }}</div>{% endif %}
+  {% if r.story %}<p class="story">{{ r.story }}</p>{% endif %}
+  {% if r.quote %}
+  <div class="quote">{{ r.quote }}{% if r.speaker_name %}<span class="who">{{ r.speaker_name }}</span>{% endif %}</div>
+  {% endif %}
+</section>
+
+<section class="body">
+  <h3>Ingredients</h3>
+  {% if r.ingredients %}
+  <ul class="ingredients">
+    {% for i in r.ingredients %}
+    <li>{% if i.quantity %}<span class="qty">{{ i.quantity }}</span> {% endif %}{{ i.name }}{% if i.note %} <span class="note">({{ i.note }})</span>{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="empty">None written down yet.</p>{% endif %}
+
+  <h3 class="later">Method</h3>
+  {% if r.steps %}
+  <ol class="steps">{% for s in r.steps %}<li>{{ s }}</li>{% endfor %}</ol>
+  {% else %}<p class="empty">No steps written down yet.</p>{% endif %}
+
+  {% if r.tips %}
+  <div class="tips"><h3>Good to know</h3><ul>{% for t in r.tips %}<li>{{ t }}</li>{% endfor %}</ul></div>
+  {% endif %}
+</section>
+{% endfor %}
+
+{% if not single %}
+<section class="closing">
+  <p>Keep cooking these. Keep telling them out loud.</p>
+  <div class="mark">{{ title }}</div>
+</section>
+{% endif %}
+</body>
+</html>

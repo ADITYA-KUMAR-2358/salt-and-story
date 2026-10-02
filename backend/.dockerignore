@@ -1,0 +1,12 @@
+# Never ship secrets or local data into the image.
+.env
+.env.*
+!.env.example
+data/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+tests/
+*.pdf
+.gtk/
