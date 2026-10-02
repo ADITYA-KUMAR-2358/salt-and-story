@@ -17,10 +17,37 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+class User(SQLModel, table=True):
+    """A person who signed in with Google (or the single local account in dev mode)."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    google_sub: str = Field(index=True, unique=True)
+    email: str = ""
+    name: str = ""
+    picture: str = ""
+    created_at: datetime = Field(default_factory=_now)
+    last_login: datetime = Field(default_factory=_now)
+    # Daily allowance of AI actions, counted in UTC days.
+    usage_day: str = ""
+    usage_count: int = 0
+    # Salted hash of the network the account was created from (never the raw IP).
+    signup_ip_hash: str = Field(default="", index=True)
+
+
+class NetworkUsage(SQLModel, table=True):
+    """AI requests per network per UTC day, to stop many accounts from one device."""
+
+    id: int | None = Field(default=None, primary_key=True)
+    ip_hash: str = Field(index=True)
+    day: str = Field(index=True)
+    count: int = 0
+
+
 class Recipe(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     created_at: datetime = Field(default_factory=_now)
     updated_at: datetime | None = Field(default_factory=_now)
+    user_id: int | None = Field(default=None, index=True, foreign_key="user.id")
     status: str = "uploaded"
     error: str | None = None
 
@@ -41,24 +68,32 @@ class Recipe(SQLModel, table=True):
     favorite: bool = False
 
 
-# Columns added after the first release. SQLite's create_all never alters an
+# Columns added after a table first shipped. SQLite's create_all never alters an
 # existing table, so older databases get these with a plain ALTER TABLE.
 _ADDED_COLUMNS = {
-    "photo_path": "VARCHAR",
-    "updated_at": "DATETIME",
-    "favorite": "BOOLEAN NOT NULL DEFAULT 0",
+    "recipe": {
+        "photo_path": "VARCHAR",
+        "updated_at": "DATETIME",
+        "favorite": "BOOLEAN NOT NULL DEFAULT 0",
+        "user_id": "INTEGER REFERENCES user(id)",
+    },
+    "user": {
+        "signup_ip_hash": "VARCHAR NOT NULL DEFAULT ''",
+    },
 }
 
 _engine = None
 
 
 def _migrate(engine) -> None:
-    existing = {c["name"] for c in inspect(engine).get_columns("recipe")}
+    inspector = inspect(engine)
     with engine.begin() as conn:
-        for name, sql_type in _ADDED_COLUMNS.items():
-            if name not in existing:
-                log.info("migrating: adding recipe.%s", name)
-                conn.execute(text(f"ALTER TABLE recipe ADD COLUMN {name} {sql_type}"))
+        for table, columns in _ADDED_COLUMNS.items():
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            for name, sql_type in columns.items():
+                if name not in existing:
+                    log.info("migrating: adding %s.%s", table, name)
+                    conn.execute(text(f'ALTER TABLE "{table}" ADD COLUMN {name} {sql_type}'))
 
 
 def get_engine():

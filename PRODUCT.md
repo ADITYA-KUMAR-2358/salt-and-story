@@ -35,7 +35,7 @@ The speaker's voice is preserved, not rewritten: every recipe keeps a verbatim p
 
 ## Brand Commitments
 
-- Name: **Salt & Story**. Tagline: "Recipes, in the voices that made them."
+- Name: **Salt & Story**. Tagline: "Because Every Recipe Has A Story"
 - Voice: warm, plain, family-kitchen. No marketing filler.
 - The speaker's words are sacred: quotes are verbatim.
 

@@ -1,6 +1,6 @@
 # Salt & Story: Product Requirements
 
-> Recipes, in the voices that made them.
+> Because Every Recipe Has A Story
 
 Status: v1.1, built for the DEV Hacktoberfest Weekend Challenge "Build for a Friend" (deadline Mon Oct 5, 2026, 06:59 UTC).
 Read with: [ARCHITECTURE.md](ARCHITECTURE.md), [DESIGN.md](DESIGN.md), [RULES.md](RULES.md), [TASKS.md](TASKS.md), [MEMORY.md](MEMORY.md).

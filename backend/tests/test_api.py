@@ -12,8 +12,11 @@ TRANSCRIPT = "Boil two cups of water. Add a pinch of salt. My aunt says the wate
 @pytest.fixture(autouse=True)
 def mocks(monkeypatch):
     monkeypatch.setattr(
-        llm, "structure_recipe",
-        lambda t: RecipeDraft(title="Boiled water", steps=["Boil."], quote="the water should dance."),
+        llm,
+        "structure_recipe",
+        lambda t: RecipeDraft(
+            title="Boiled water", steps=["Boil."], quote="the water should dance."
+        ),
     )
     monkeypatch.setattr(eleven, "transcribe", lambda p: TRANSCRIPT)
     monkeypatch.setattr(eleven, "narrate", lambda t: b"ID3fake")
@@ -83,10 +86,24 @@ def test_book_requires_ids():
 def test_book_html_renders_every_section():
     from app.models import Recipe
 
-    r = Recipe(id=1, title="Chai", story="Morning ritual.", steps=["Boil"], quote="Boil it twice.",
-               ingredients=[{"name": "tea", "quantity": "2 tsp", "note": None}], speaker_name="Nani")
+    r = Recipe(
+        id=1,
+        title="Chai",
+        story="Morning ritual.",
+        steps=["Boil"],
+        quote="Boil it twice.",
+        ingredients=[{"name": "tea", "quantity": "2 tsp", "note": None}],
+        speaker_name="Nani",
+    )
     html = pdf.render_html([r], title="Salt & Story", dedication="Aditya")
-    for needle in ("Chai", "Morning ritual.", "Boil it twice.", "For Aditya", "Contents", "Recipes told by Nani"):
+    for needle in (
+        "Chai",
+        "Morning ritual.",
+        "Boil it twice.",
+        "For Aditya",
+        "Contents",
+        "Recipes told by Nani",
+    ):
         assert needle in html
 
 
@@ -98,3 +115,24 @@ def test_pdf_smoke():
     except (ImportError, OSError):
         pytest.skip("WeasyPrint native libraries not installed (runs in Docker)")
     assert data.startswith(b"%PDF")
+
+
+def test_cover_told_by_line_can_be_edited_or_hidden():
+    from app.models import Recipe
+
+    r = Recipe(id=1, title="Chai", steps=["Boil"], speaker_name="Nani")
+    assert "Recipes told by Nani" in pdf.render_html([r])
+    assert "Recipes told by Nani and the whole Sharma family" in pdf.render_html(
+        [r], told_by="Nani and the whole Sharma family"
+    )
+    assert "Recipes told by" not in pdf.render_html([r], told_by="")
+
+
+def test_book_endpoint_passes_told_by(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(pdf, "render_pdf", lambda recipes, **kw: seen.update(kw) or b"%PDF-")
+    rid = client.post("/api/recipes", json={"title": "Tea", "steps": ["Steep."]}).json()["id"]
+    client.get(f"/api/book.pdf?ids={rid}&by=Grandma%20Ruth")
+    assert seen["told_by"] == "Grandma Ruth"
+    client.get(f"/api/book.pdf?ids={rid}")
+    assert seen["told_by"] is None

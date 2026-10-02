@@ -17,6 +17,9 @@ export interface Capabilities {
   llm: { model: string; reachable: boolean };
   max_upload_mb: number; max_photo_mb: number;
 }
+export type AuthMode = "google" | "dev" | "closed";
+export interface AuthConfig { mode: AuthMode; google_client_id: string; daily_limit: number }
+export interface User { id: number; name: string; email: string; picture: string; used_today: number; daily_limit: number }
 
 export const IN_PROGRESS: Status[] = ["uploaded", "transcribing", "structuring"];
 export const media = (path: string | null) => (path ? `${API}${path}` : null);
@@ -25,20 +28,58 @@ export class ApiError extends Error {
   constructor(message: string, public status: number) { super(message); }
 }
 
-async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  let res: Response;
+// ---- session token -----------------------------------------------------------
+// Kept in localStorage so a refresh keeps you signed in. The strict CSP (no inline or
+// third-party scripts except Google's sign-in) is what protects it from injected code.
+const TOKEN_KEY = "salt-and-story:session";
+export const session = {
+  get(): string | null {
+    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  },
+  set(token: string) {
+    try { localStorage.setItem(TOKEN_KEY, token); } catch { /* private mode: lasts this tab only */ }
+  },
+  clear() {
+    try { localStorage.removeItem(TOKEN_KEY); } catch { /* ignore */ }
+  },
+};
+/** Fired when the server says the session is missing or expired. */
+export const UNAUTHORIZED_EVENT = "salt:unauthorized";
+
+function withAuth(init: RequestInit = {}): RequestInit {
+  const token = session.get();
+  if (!token) return init;
+  const headers = new Headers(init.headers);
+  headers.set("Authorization", `Bearer ${token}`);
+  return { ...init, headers };
+}
+
+async function readError(res: Response, fallback: string): Promise<ApiError> {
+  let detail: unknown = fallback;
+  try { detail = (await res.json()).detail ?? detail; } catch { /* keep default */ }
+  if (Array.isArray(detail)) detail = detail.map((d) => d?.msg ?? String(d)).join(". ");
+  if (res.status === 401) window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+  return new ApiError(typeof detail === "string" ? detail : JSON.stringify(detail), res.status);
+}
+
+async function send(path: string, init?: RequestInit): Promise<Response> {
   try {
-    res = await fetch(`${API}${path}`, init);
+    return await fetch(`${API}${path}`, withAuth(init));
   } catch {
     throw new ApiError("Cannot reach the server. It may be waking up. Try again in a moment.", 0);
   }
-  if (!res.ok) {
-    let detail: unknown = `Request failed (${res.status})`;
-    try { detail = (await res.json()).detail ?? detail; } catch { /* keep default */ }
-    if (Array.isArray(detail)) detail = detail.map((d) => d?.msg ?? String(d)).join(". ");
-    throw new ApiError(typeof detail === "string" ? detail : JSON.stringify(detail), res.status);
-  }
+}
+
+async function call<T>(path: string, init?: RequestInit): Promise<T> {
+  const res = await send(path, init);
+  if (!res.ok) throw await readError(res, `Request failed (${res.status})`);
   return res.status === 204 ? (undefined as T) : res.json();
+}
+
+async function blob(path: string, fallback: string): Promise<Blob> {
+  const res = await send(path);
+  if (!res.ok) throw await readError(res, fallback);
+  return res.blob();
 }
 
 const json = (method: string, body: unknown): RequestInit => ({
@@ -52,9 +93,26 @@ const form = (file: Blob, name: string, extra: Record<string, string> = {}) => {
   return f;
 };
 
+/** Save a Blob as a file without leaving the page. */
+export function saveBlob(data: Blob, filename: string) {
+  const url = URL.createObjectURL(data);
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export const api = {
   health: (signal?: AbortSignal) => fetch(`${API}/health`, { signal, cache: "no-store" }),
   status: () => call<Capabilities>("/api/status"),
+
+  authConfig: () => call<AuthConfig>("/api/auth/config"),
+  signInWithGoogle: (credential: string) =>
+    call<{ token: string; user: User }>("/api/auth/google", json("POST", { credential })),
+  me: () => call<User>("/api/auth/me"),
+  deleteAccount: () => call<void>("/api/auth/me", { method: "DELETE" }),
+
   list: (q = "") => call<Recipe[]>(`/api/recipes${q ? `?q=${encodeURIComponent(q)}` : ""}`),
   get: (id: number) => call<Recipe>(`/api/recipes/${id}`),
   create: (draft: RecipeDraft) => call<Recipe>("/api/recipes", json("POST", draft)),
@@ -73,20 +131,11 @@ export const api = {
     call<{ id: number; status: Status }>("/api/memos", { method: "POST", body: form(file, name, { speaker_name: speaker }) }),
   exportAll: () => call<Recipe[]>("/api/export"),
   importAll: (items: unknown[]) => call<{ imported: number }>("/api/import", json("POST", items)),
-  pdfUrl: (id: number) => `${API}/api/recipes/${id}/pdf`,
-  bookBlob: async (ids: number[], title: string, dedication: string) => {
+  recipePdf: (id: number) => blob(`/api/recipes/${id}/pdf`, "The recipe PDF could not be made."),
+  /** by: null = the cooks' names automatically; "" = no "told by" line; text = exactly that. */
+  bookBlob: (ids: number[], title: string, dedication: string, by: string | null = null) => {
     const q = new URLSearchParams({ ids: ids.join(","), title, dedication });
-    let res: Response;
-    try {
-      res = await fetch(`${API}/api/book.pdf?${q}`);
-    } catch {
-      throw new ApiError("Cannot reach the server. Try again in a moment.", 0);
-    }
-    if (!res.ok) {
-      let d = "";
-      try { d = (await res.json()).detail; } catch { /* ignore */ }
-      throw new ApiError(d || "The book could not be built.", res.status);
-    }
-    return res.blob();
+    if (by !== null) q.set("by", by);
+    return blob(`/api/book.pdf?${q}`, "The book could not be built.");
   },
 };

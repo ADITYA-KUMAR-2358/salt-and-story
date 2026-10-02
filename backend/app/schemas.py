@@ -97,6 +97,30 @@ class LLMStatus(BaseModel):
     reachable: bool
 
 
+class UserOut(BaseModel):
+    id: int
+    name: str
+    email: str
+    picture: str
+    used_today: int
+    daily_limit: int
+
+
+class AuthConfigOut(BaseModel):
+    mode: str  # "google", "dev" or "closed"
+    google_client_id: str
+    daily_limit: int
+
+
+class GoogleSignIn(BaseModel):
+    credential: str = Field(min_length=20, max_length=5000)
+
+
+class SessionOut(BaseModel):
+    token: str
+    user: UserOut
+
+
 class FavoriteIn(BaseModel):
     favorite: bool
 

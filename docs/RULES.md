@@ -17,13 +17,19 @@ These are binding. If a request conflicts with one, say so before acting.
 8. Before every commit: `git status` must not show `.env`; run the secret scan in CI (`ci.yml`). If a key leaks, rotate it first, then clean up.
 9. Error messages may name an env var (`Check LLM_API_KEY`) but never print its value.
 
+## Accounts
+
+- Every new recipe endpoint takes `user: User = Depends(auth.current_user)` and scopes queries to `user.id`. Never return or touch another account's data.
+- Anything that calls Gemma or ElevenLabs must go through `spend_guard` (request) and `auth.spend` (at the moment of the paid call).
+- Production must fail closed: never default `AUTH_MODE` to `dev` on a public server.
+
 ## Code
 
-10. **Backend**: Python 3.12, FastAPI, Pydantic v2, SQLModel. Type everything. `ruff check .` and `pytest` must pass. External calls (ElevenLabs, LLM, network) are mocked in tests; tests set env vars in `conftest.py` so they never use real keys or quota.
+10. **Backend**: Python 3.13+ (Docker uses 3.14), FastAPI, Pydantic v2, SQLModel. Type everything. `ruff check .`, `ruff format --check .` and `pytest --cov=app` (coverage >= 90%) must pass. External calls (ElevenLabs, LLM, network) are mocked in tests; tests set env vars in `conftest.py` so they never use real keys or quota.
 11. Prompts live in `backend/app/prompts.py`. Change behaviour there, not with ad hoc string building.
 12. Schema changes: add the field to `models.Recipe` **and** to `_ADDED_COLUMNS` so existing SQLite files migrate.
 13. Long or blocking work goes in `pipeline.py` background tasks. Set the new status in the request handler before returning (prevents polling races).
-14. **Frontend**: React + TypeScript strict, Tailwind v4, no `any`. `npm run build` (includes `tsc`) must pass.
+14. **Frontend**: Node 24, React + TypeScript strict, Tailwind v4, no `any`. `npm run lint` (Oxlint, zero warnings), `npm run typecheck` and `npm run build` must pass.
 15. All UI text goes in `src/strings.ts` or `src/content/*.ts`. No English literals in logic.
 16. Icons: `@phosphor-icons/react` only. Custom illustrations live in `components/Brand.tsx` and follow its grammar (96 grid, 2.6 round stroke, currentColor + butter/marigold fills).
 17. Images: use `<Img>` (skeleton + lazy + fallback). Add new photos as WebP at 640 and 1280 widths in `public/images/` and credit them in `CREDITS.md` and `pages/Credits.tsx`.

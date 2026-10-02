@@ -2,7 +2,7 @@
 
 export const landing = {
   hero: {
-    title: ["Recipes, in the", "voices that", "made them."],
+    title: ["Because Every", "Recipe Has", "A Story"],
     lead: "Record a grandparent cooking out loud. Get a clean recipe with their words kept, and a cookbook to print.",
     primary: "Add a memo",
     secondary: "See how it works",

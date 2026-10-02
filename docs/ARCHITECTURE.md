@@ -100,6 +100,20 @@ New columns are added at startup with `ALTER TABLE` (`models._ADDED_COLUMNS`) be
 | GET | `/api/export` / POST `/api/import` | JSON backup / restore (max 500) |
 | static | `/media/photos/*`, `/media/narration/*` | Files |
 
+## Accounts and limits
+
+- `app/auth.py`. Modes: `google` (when `GOOGLE_CLIENT_ID` is set), `dev` (one local account; default outside production), `closed` (production without a client id: every recipe endpoint returns 503, fail closed).
+- Sign-in: the browser loads Google Identity Services (only on `/signin`), gets an ID token, and posts it to `POST /api/auth/google`. The server verifies signature, audience and issuer with `google-auth`, requires a verified email, applies `ALLOWED_EMAILS`, upserts a `User`, and returns its own session token (`itsdangerous`, signed with `SESSION_SECRET`, expires after `SESSION_DAYS`).
+- The browser sends `Authorization: Bearer <token>`. `current_user` is a FastAPI dependency on every recipe endpoint; `_get()` returns 404 for other people's recipes. Media files use random 24-character names.
+- Daily allowance: `USER_DAILY_LIMIT` (default 5) AI actions per account per UTC day, checked before a request (`check_allowance`, 429) and counted only when Gemma or ElevenLabs is really called (`spend`, in the pipeline). Reused transcripts, hand-written recipes, edits, photos and books are free.
+- `GET /api/auth/config` (public), `GET/DELETE /api/auth/me`.
+- The first account adopts recipes created before accounts existed.
+- Anti-spam: throwaway email domains refused at sign-in; `NetworkUsage` counts AI requests per network per day and `User.signup_ip_hash` limits new accounts per network. The client IP comes only from `CLIENT_IP_HEADER`, and is stored as a salted hash.
+
+## CI and quality gates
+
+`.github/workflows/ci.yml` on every push and pull request: ruff lint and format, pytest on Python 3.13 and 3.14 with deprecations as errors and branch coverage at least 90%, pip-audit, Oxlint (zero warnings), TypeScript, production build and bundle secret scan, npm audit, Gitleaks over history, Docker Compose build with health checks and non-root checks, then the Playwright suites (`e2e/app.mjs`, `e2e/responsive.mjs`). A final `All checks passed` job gates merging. `codeql.yml` (Python, TypeScript, Actions) and `pr.yml` (conventional PR title, dependency review) also run on pull requests; Dependabot keeps pip, npm, Docker and Actions current.
+
 ## Processing pipeline
 
 1. Upload saved to `DATA_DIR/uploads/<uuid>.<ext>`; row created; `BackgroundTasks` runs `process_audio`.

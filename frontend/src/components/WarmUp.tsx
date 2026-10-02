@@ -45,6 +45,7 @@ export default function WarmUp() {
   useEffect(() => {
     ping();
     const every = window.setInterval(() => api.health().catch(() => undefined), FIVE_MIN);
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- a counter, not a DOM node: bumping it cancels the running ping loop
     return () => { attempt.current++; window.clearInterval(every); };
   }, [ping]);
 

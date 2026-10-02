@@ -1,6 +1,6 @@
 # Salt & Story
 
-*Recipes, in the voices that made them.*
+*Because Every Recipe Has A Story*
 
 Salt & Story turns voice memos of a relative cooking into clean, printable recipes, while keeping the speaker's own words beside them. Record or upload a memo, an open-weight model (**Gemma 4**) writes it up, and you export a cookbook PDF that looks like a gift.
 
@@ -16,6 +16,7 @@ Built by **Aditya Kumar** ([@ADITYA-KUMAR-2358](https://github.com/ADITYA-KUMAR-
 
 - **Capture**: record in the browser (live level meter), upload a memo, paste a transcript, or write a recipe by hand.
 - **Write it up**: ElevenLabs transcribes; Gemma 4 structures the recipe. Vague amounts get a measurement *and* keep the original words ("1/4 tsp turmeric (a pinch)"). Nothing is invented. One line is kept exactly as it was said, checked against the transcript in code.
+- **Accounts**: Sign in with Google only (no passwords, no throwaway email addresses); every family's recipes are private to their account; each account can have 5 recipes written by the AI per day, and each network at most 2 new accounts and 10 AI requests per day, so a shared link cannot drain the free quota.
 - **Keep it tidy**: heart your favourites (filter Your recipes to just those, or put them all in the book in one tap) and delete recipes from the list, with a confirmation first.
 - **Use it**: a reading view with ingredient check-off, **cook mode** (one big step at a time, screen kept awake), narration, photos, editing with an unsaved-changes guard.
 - **Pages**: landing, recipes, add a memo, recipe, make the book, guide (with FAQ), privacy, terms of use, accessibility, photo credits, plus 404, error, offline and server-waking states.
@@ -48,6 +49,8 @@ Pipeline: `uploaded -> transcribing -> structuring -> ready | failed`. Failures 
 ```bash
 cp .env.example .env          # fill in ELEVENLABS_API_KEY and LLM_API_KEY
 docker compose up --build     # then open http://localhost:8080
+# No Google sign-in set up yet? Try it with one local account:
+AUTH_MODE=dev docker compose up --build
 ```
 
 Two containers: `web` (nginx serving the app and proxying `/api`, `/media`, `/health` to the API, so there is no CORS) and `api` (FastAPI with the PDF engine built in). Only port 8080 is published. Recipes, audio and photos live in the `salt-data` volume and survive restarts. Both containers run as non-root users; secrets come from `.env` at runtime and are never baked into an image. Stop with `docker compose down` (add `-v` to also delete the data).
@@ -117,13 +120,22 @@ Do not switch to a Gemini model: the challenge requires open-weight AI.
 | `LLM_THINKING_LEVEL` | Gemma 4 reasoning on Google (`minimal` is fast) | `minimal` |
 | `LLM_TIMEOUT` / `LLM_MAX_RPM` / `LLM_MAX_WAIT` | Timeout, calls per minute, longest polite wait on 429 | `240` / `10` / `45` |
 | `LLM_MAX_PER_DAY` / `SUBMIT_LIMIT` | Daily model calls; per-visitor requests per 10 min (0 = off) | `300` / `8` |
+| `GOOGLE_CLIENT_ID` | OAuth Client ID for Sign in with Google (public). Required in production | none |
+| `SESSION_SECRET` | Signs sessions (**secret**) | random per start |
+| `ALLOWED_EMAILS` | Only these Google accounts may sign in (optional) | anyone |
+| `USER_DAILY_LIMIT` | AI recipes or narrations per account per day (0 = unlimited) | `5` |
+| `AUTH_MODE` | `google`, or `dev` for one local account without sign-in | automatic |
+| `BLOCKED_EMAIL_DOMAINS` | Extra email domains to refuse (throwaway domains are always refused) | none |
+| `ACCOUNTS_PER_IP_PER_DAY` / `IP_DAILY_LIMIT` | Anti-spam per network (IP stored only as a salted hash): new accounts per day, AI requests per day | `2` / `10` |
+| `CLIENT_IP_HEADER` | Header with the visitor's real IP: `true-client-ip` on Render, `x-real-ip` behind nginx | direct connection |
 | `VITE_API_URL` | Backend URL baked into the frontend (not secret) | `http://localhost:8000` |
 
 ### Tests
 
 ```bash
-cd backend && ruff check . && pytest     # 52 tests; ElevenLabs and the model are mocked, no quota used
-cd frontend && npm run build             # type-check + production build
+cd backend && ruff check . && ruff format --check . && pytest --cov=app   # 76 tests, coverage >= 90%; ElevenLabs and the model are mocked
+cd frontend && npm run lint && npm run typecheck && npm run build
+cd e2e && npm ci && WEB=http://localhost:8080 API=http://localhost:8080 npm test   # browser tests against Docker
 python scripts/demo.py                   # real model: samples -> demo-book.pdf (run inside Docker for the PDF)
 ```
 
@@ -134,7 +146,7 @@ The full guide is in **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: Render step b
 **Render in short** (free plan, using the `render.yaml` Blueprint):
 
 1. Push to GitHub. `git status` must not list `.env`. Rotate any key that was ever shared.
-2. On Render: **New → Blueprint**, pick the repo. Enter `ELEVENLABS_API_KEY`, `LLM_API_KEY`, and `CORS_ORIGINS=https://salt-and-story-web.onrender.com`.
+2. On Render: **New → Blueprint** (not New → Web Service), pick the repo. Enter `ELEVENLABS_API_KEY`, `LLM_API_KEY`, and `CORS_ORIGINS=https://salt-and-story-web.onrender.com`.
 3. If Render gives the API a different address, update `VITE_API_URL` and the CSP lines in `render.yaml`, and set `CORS_ORIGINS` to the website's real address.
 4. Check `https://<api>/health` and `/api/status`, then make a recipe and a book on the website. The PDF engine is in the API's Docker image, so books work on Render.
 5. Optional: add a `BACKEND_URL` repository secret so `.github/workflows/keep-alive.yml` keeps the free API awake.
@@ -157,6 +169,14 @@ The full guide is in **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)**: Render step b
 - English only for now; strings are centralised for Hindi and Hinglish next (with a Devanagari PDF font).
 - Free hosting loses data on restart: Postgres or a paid disk for real use.
 - Shared family libraries, playback of the original memo, servings scaling.
+
+## Contributing
+
+Every pull request runs lint, formatting, type checks, backend tests on Python 3.13 and 3.14 (coverage at least 90%), dependency audits, a secret scan, CodeQL security analysis, Docker builds and the full browser suite; see [CONTRIBUTING.md](CONTRIBUTING.md). Please also read the [Code of Conduct](CODE_OF_CONDUCT.md) and, for security issues, [SECURITY.md](SECURITY.md).
+
+## Licence
+
+[MIT](LICENSE) for the code. Photos, fonts and third-party services keep their own licences (listed in `LICENSE`).
 
 ## Credits
 

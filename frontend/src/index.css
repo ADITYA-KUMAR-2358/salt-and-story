@@ -107,6 +107,9 @@
   p, h1, h2, h3, h4, li, blockquote, label, span { overflow-wrap: anywhere; }
   /* fieldset defaults to min-width: min-content and breaks narrow layouts */
   fieldset { min-width: 0; }
+  /* Grid items default to min-width: auto, so one long word or wide child can push a whole
+     column past the screen on phones. Let every grid item shrink to its track. */
+  :where(.grid) > * { min-width: 0; }
 
   /* Browser surfaces carry the palette too. */
   ::selection { background: var(--accent); color: var(--on-accent); }
@@ -185,7 +188,7 @@
   background: var(--bg-2); color: var(--ink);
 }
 
-.field { display: grid; gap: .4rem; }
+.field { display: grid; gap: .4rem; align-content: start; }
 .label { font-weight: 650; font-size: .92rem; color: var(--ink); }
 .hint { font-size: .88rem; color: var(--muted); }
 .input {

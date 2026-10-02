@@ -33,6 +33,7 @@ export const guide = {
       id: "add",
       title: "Add a memo",
       steps: [
+        "Sign in with Google (the first time creates your account). Your recipes stay private to you.",
         "Press Add a memo in the top bar.",
         "Type who is telling the recipe. Their name is printed next to their words.",
         "Choose Record now, Upload a memo, or Paste words. Pasting works even when transcription is not set up.",
@@ -90,6 +91,8 @@ export const guide = {
     { q: "The recipe says Needs attention.", a: "Open it and read the message. Usually the recipe writer was busy or hit its free usage limit. Wait a minute and press Try again, or press Open and write it by hand." },
     { q: "Some amounts or steps are missing.", a: "That is on purpose: if it was not said clearly, it is left blank rather than guessed. Press Edit and fill it in, or ask the cook." },
     { q: "The PDF will not build.", a: "Only recipes marked Ready can go in the book. If the error says PDF export needs the Pango libraries, follow the fix it names (on Windows, run scripts/setup-pdf-windows.ps1 once), or run Salt & Story with Docker." },
+    { q: "It says I have used today's recipe actions.", a: "Each account can have 5 recipes written or narrated by the AI per day. It resets at midnight UTC. You can still write recipes by hand, edit, add photos and make books." },
+    { q: "It says sign-in is not set up.", a: "Whoever runs this copy of Salt & Story still needs to add a Google Client ID. The deployment guide explains how." },
     { q: "My recipes disappeared.", a: "The free server restarted and lost its files. Use Restore a backup with your latest backup file." },
   ],
 };

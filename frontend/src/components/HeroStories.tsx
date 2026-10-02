@@ -1,6 +1,6 @@
 import { useGSAP } from "@gsap/react";
 import { HandTap, Quotes } from "@phosphor-icons/react";
-import gsap from "gsap";
+import { gsap } from "gsap";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { usePrefersReducedMotion } from "../hooks";
 
@@ -204,6 +204,7 @@ export default function HeroStories({ stories }: { stories: Story[] }) {
   const s = stories[top];
 
   return (
+    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- arrow keys move the carousel; every action also has a button
     <div ref={root} className="relative mx-auto w-full max-w-xl select-none"
       onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}
       onKeyDown={(e) => { if (e.key === "ArrowRight") go(1); if (e.key === "ArrowLeft") go(-1); }}

@@ -20,6 +20,25 @@ services:
         sync: false
       - key: LLM_API_KEY
         sync: false
+      # Accounts: OAuth Client ID from Google Cloud Console (set in the dashboard).
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      # Signs sessions; Render generates a strong random value once.
+      - key: SESSION_SECRET
+        generateValue: true
+      # Optional allow-list of Google emails (comma-separated). Leave empty for anyone.
+      - key: ALLOWED_EMAILS
+        sync: false
+      - key: USER_DAILY_LIMIT
+        value: "5"
+      # Anti-spam per network (stored as salted hashes): new accounts and AI requests per day.
+      - key: ACCOUNTS_PER_IP_PER_DAY
+        value: "2"
+      - key: IP_DAILY_LIMIT
+        value: "10"
+      # Render sits behind Cloudflare, which sets True-Client-IP (visitors cannot fake it).
+      - key: CLIENT_IP_HEADER
+        value: true-client-ip
       # Non-secret model settings (Gemma 4 on the Gemini API free tier).
       - key: LLM_BASE_URL
         value: https://generativelanguage.googleapis.com/v1beta/openai
@@ -82,7 +101,7 @@ services:
       # If the API URL changes, update connect-src, img-src and media-src too.
       - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://salt-and-story-api.onrender.com; media-src 'self' blob: https://salt-and-story-api.onrender.com; connect-src 'self' https://salt-and-story-api.onrender.com; font-src 'self' data:; frame-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
+        value: "default-src 'self'; script-src 'self' https://accounts.google.com/gsi/client; style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; img-src 'self' data: blob: https://salt-and-story-api.onrender.com https://lh3.googleusercontent.com; media-src 'self' blob: https://salt-and-story-api.onrender.com; connect-src 'self' https://salt-and-story-api.onrender.com https://accounts.google.com/gsi/; font-src 'self' data:; frame-src 'self' blob: https://accounts.google.com/gsi/; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests"
       - path: /assets/*
         name: Cache-Control
         value: public, max-age=31536000, immutable

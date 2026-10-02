@@ -1,6 +1,6 @@
 import { useGSAP } from "@gsap/react";
 import { ArrowDown, BookOpenText, Lock, Plus, SpeakerHigh } from "@phosphor-icons/react";
-import gsap from "gsap";
+import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";

@@ -4,6 +4,9 @@ Decisions and hard-won facts, newest first. Add to this when you learn something
 
 ## Decisions
 
+- **2026-10-03: Anti-spam.** Throwaway email domains refused at Google sign-in (bundled `app/data/disposable_email_domains.txt` from the disposable-email-domains project, plus `BLOCKED_EMAIL_DOMAINS`); per network: 2 new accounts and 10 AI requests per day. Client IP from `CLIENT_IP_HEADER` only (Render/Cloudflare: `true-client-ip`; nginx: `x-real-ip`, and nginx strips client-sent IP headers); uvicorn proxy-header rewriting is off. IPs stored as salted SHA-256.
+- **2026-10-03: Per-account limit is 5 AI recipes per day** (owner's choice, down from 20 then 7). Book cover's "Recipes told by" line is editable (`by` query param: absent = automatic, empty = hidden).
+- **2026-10-03: New tagline "Because Every Recipe Has A Story"** (owner's wording and capitalisation) and a new mark: a lidded pot whose steam curls like quotation marks, replacing the speech bubble the owner felt was not about cooking. Icons and the OG card are rendered from `public/favicon.svg` in Chrome.
 - **2026-10-03: Favourites and list delete.** `favorite` column (migrated with `BOOLEAN NOT NULL DEFAULT 0`), `PATCH /api/recipes/{id}/favorite`, `?favorite=` filter; CORS now allows PATCH. Library filter lives in the URL (`?show=favourites`). Hearts are basil, not marigold: marigold fails 3:1 contrast on photos.
 - **2026-10-03: Dockerised with Compose** (nginx web + api, same origin, only 8080 published). Carousel arrows removed (dots, tap, swipe and keyboard remain), per the owner.
 - **2026-10-03: Legal pages added** (Privacy, Terms of use, Accessibility) in `src/content/legal.ts`. They state plainly that Google's free tier may use inputs to improve its products and may be human-reviewed; keep that true if the provider changes.
@@ -18,7 +21,7 @@ Decisions and hard-won facts, newest first. Add to this when you learn something
 - **2026-10-02: Primary user is the collector** (younger family member); secondary is the elder at the stove; judges third. Accessibility target is "older eyes and hands" beyond WCAG AA.
 - **English only for v1**; strings centralised for Hindi later.
 - **Stack** (fixed by the owner): FastAPI, React + Vite + TS + Tailwind, ElevenLabs, WeasyPrint, Render.
-- **Name**: Salt & Story, tagline "Recipes, in the voices that made them.", repo `salt-and-story`.
+- **Name**: Salt & Story, tagline "Because Every Recipe Has A Story", repo `salt-and-story`.
 
 ## Facts learned
 

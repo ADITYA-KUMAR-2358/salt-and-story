@@ -127,6 +127,10 @@ def _post(url: str, headers: dict, body: dict, timeout: float) -> httpx.Response
     raise LLMError("The recipe writer did not respond.")  # pragma: no cover
 
 
+def _is_local(url: str) -> bool:
+    return any(h in url for h in ("localhost", "127.0.0.1", "host.docker.internal"))
+
+
 def _chat(messages: list[dict]) -> str:
     """One call to an OpenAI-compatible endpoint. Tests replace this.
 
@@ -134,8 +138,17 @@ def _chat(messages: list[dict]) -> str:
     400/422 retries once without it (the parser copes with plain text).
     """
     s = get_settings()
-    body: dict = {"model": s.llm_model, "messages": messages, "temperature": 0.2,
-                  "response_format": {"type": "json_object"}}
+    if not s.llm_api_key and not _is_local(s.llm_base_url):
+        raise LLMError(
+            "LLM_API_KEY is not set on the server. Add a Google AI Studio key, "
+            "or write the recipe by hand."
+        )
+    body: dict = {
+        "model": s.llm_model,
+        "messages": messages,
+        "temperature": 0.2,
+        "response_format": {"type": "json_object"},
+    }
     if s.llm_thinking_level and "generativelanguage.googleapis.com" in s.llm_base_url:
         # Google-specific passthrough on its OpenAI-compatible endpoint.
         tc = {"thinking_config": {"thinking_level": s.llm_thinking_level}}

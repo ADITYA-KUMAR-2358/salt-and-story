@@ -66,14 +66,20 @@ def render_html(
     title: str = "Salt & Story",
     dedication: str = "",
     single: bool = False,
+    told_by: str | None = None,
 ) -> str:
+    """told_by: None = the cooks' names, automatically; "" = no line; text = exactly that."""
     speakers = sorted({r.speaker_name for r in recipes if r.speaker_name})
+    if told_by is None:
+        subtitle = f"Recipes told by {_join_names(speakers)}" if speakers else ""
+    else:
+        subtitle = f"Recipes told by {told_by.strip()}" if told_by.strip() else ""
     return _env.get_template("book.html").render(
         recipes=recipes,
         photos={r.id: _photo_uri(r) for r in recipes},
         title=title,
-        tagline="Recipes, in the voices that made them.",
-        subtitle=f"Recipes told by {_join_names(speakers)}" if speakers else "",
+        tagline="Because Every Recipe Has A Story",
+        subtitle=subtitle,
         dedication=dedication,
         single=single,
         fonts_uri=FONTS_DIR.resolve().as_uri(),

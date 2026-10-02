@@ -1,0 +1,42 @@
+# Keeps every dependency current. Updates arrive as pull requests, which then run the
+# full ci.yml suite before anything can be merged.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /backend
+    schedule: { interval: weekly, day: monday }
+    groups:
+      python:
+        patterns: ["*"]
+    commit-message: { prefix: "build(deps)" }
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday }
+    groups:
+      frontend:
+        patterns: ["*"]
+    commit-message: { prefix: "build(deps)" }
+
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)" }
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)" }
+
+  - package-ecosystem: docker
+    directory: /frontend
+    schedule: { interval: weekly, day: monday }
+    commit-message: { prefix: "build(deps)" }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    groups:
+      actions:
+        patterns: ["*"]
+    commit-message: { prefix: "ci(deps)" }

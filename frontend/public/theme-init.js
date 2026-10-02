@@ -2,4 +2,4 @@
 try {
   var t = localStorage.getItem("salt-and-story:theme");
   if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
-} catch (e) { /* private mode: follow the device */ }
+} catch { /* private mode: follow the device */ }

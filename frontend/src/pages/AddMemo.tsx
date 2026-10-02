@@ -72,7 +72,7 @@ export default function AddMemo() {
   }, [id, bump, finished]);
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
   // Release the microphone if the page is left mid-recording.
-  useEffect(() => () => { recorder.current?.state === "recording" && recorder.current.stop(); }, []);
+  useEffect(() => () => { if (recorder.current?.state === "recording") recorder.current.stop(); }, []);
 
   async function startRecording() {
     setError(null);

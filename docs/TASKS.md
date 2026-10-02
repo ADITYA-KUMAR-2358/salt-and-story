@@ -20,7 +20,9 @@ Status of the build, and the exact order to rebuild it from scratch. Tick boxes 
 14. [x] PDF export without Docker on Windows (`scripts/setup-pdf-windows.ps1`), macOS (brew), Linux (apt).
 15. [x] Footer sections and Privacy, Terms of use, Accessibility pages.
 16. [x] Favourites (heart, filter, Select favourites in the book, kept in backups) and delete from Your recipes; 121/121 checks on Docker; SQLite migration verified on an existing volume.
-17. [ ] Deploy to Render and run the production checklist (section D).
+17. [x] Accounts: Sign in with Google, per-account isolation, 5 AI recipes per account per day, account deletion; Python 3.14, Node 24, latest actions; Oxlint; CI with coverage gate, CodeQL, Dependabot, PR checks and Playwright against Docker; LICENSE, CODE_OF_CONDUCT, SECURITY.
+18. [ ] Create the Google OAuth client and set GOOGLE_CLIENT_ID and SESSION_SECRET on Render.
+19. [ ] Deploy to Render and run the production checklist (section D).
 
 ## B. Done (v1.1)
 

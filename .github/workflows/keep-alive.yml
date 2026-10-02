@@ -1,19 +1,39 @@
-# Pings the free Render backend so it is less likely to be asleep during the challenge demo.
-# GitHub may delay or skip scheduled runs, and disables scheduled workflows in repos with
-# no activity for 60 days. For something sturdier, add an external monitor (see README).
+# Pings the free Render backend so it is less likely to be asleep during a demo.
+#
+# Set it up: repo Settings > Secrets and variables > Actions > New repository secret,
+# name BACKEND_URL, value https://<your-api>.onrender.com (no trailing slash).
+# Without that secret this workflow does nothing (it does not fail).
+#
+# GitHub may delay or skip scheduled runs, and pauses them after 60 days without
+# commits. An external monitor (UptimeRobot, cron-job.org) is more reliable.
 name: keep-alive
+
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/10 * * * *"
   workflow_dispatch:
+
+permissions: {}
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Ping /health
         env:
           BACKEND_URL: ${{ secrets.BACKEND_URL || vars.BACKEND_URL }}
         run: |
-          test -n "$BACKEND_URL" || { echo "BACKEND_URL is not set"; exit 1; }
-          curl -fsS --retry 3 --max-time 60 "$BACKEND_URL/health"
+          if [ -z "$BACKEND_URL" ]; then
+            echo "::notice::BACKEND_URL is not set, so there is nothing to ping. Add it as a repository secret to enable keep-alive."
+            exit 0
+          fi
+          url="${BACKEND_URL%/}/health"
+          # A sleeping free instance can take up to a minute to answer; retry patiently.
+          if curl -fsS --retry 6 --retry-all-errors --retry-delay 15 --max-time 90 "$url"; then
+            echo
+            echo "Backend is awake."
+          else
+            echo "::warning::$url did not answer. Is the service deployed and is BACKEND_URL right?"
+            exit 1
+          fi

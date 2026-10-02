@@ -6,7 +6,7 @@ from pathlib import Path
 
 from sqlmodel import Session, select
 
-from . import eleven, llm
+from . import auth, eleven, llm
 from .models import Recipe, get_engine
 from .schemas import RecipeDraft
 
@@ -44,42 +44,59 @@ def _reason(e: Exception, fallback: str) -> str:
     return fallback
 
 
-def _cached_draft(recipe_id: int, transcript: str) -> RecipeDraft | None:
-    """A finished recipe with the exact same transcript: reuse it, spend no quota.
+def _cached_draft(recipe_id: int, owner: int | None, transcript: str) -> RecipeDraft | None:
+    """A finished recipe of the same account with the exact same transcript: reuse it.
 
-    Demo visitors press "Try a sample" over and over; the answer would be the same.
+    Pressing "Try a sample" again then costs no quota. Only the owner's own recipes
+    are reused, so nobody's edits can leak into another account.
     """
     with Session(get_engine()) as db:
         hit = db.exec(
-            select(Recipe).where(Recipe.transcript == transcript, Recipe.status == "ready",
-                                 Recipe.id != recipe_id).order_by(Recipe.id.desc())
+            select(Recipe)
+            .where(
+                Recipe.transcript == transcript,
+                Recipe.status == "ready",
+                Recipe.user_id == owner,
+                Recipe.id != recipe_id,
+            )
+            .order_by(Recipe.id.desc())
         ).first()
         if hit is None or not hit.steps:
             return None
-        return RecipeDraft(title=hit.title, story=hit.story, servings=hit.servings,
-                           prep_time=hit.prep_time, cook_time=hit.cook_time,
-                           ingredients=hit.ingredients or [], steps=hit.steps or [],
-                           tips=hit.tips or [], quote=hit.quote)
+        return RecipeDraft(
+            title=hit.title,
+            story=hit.story,
+            servings=hit.servings,
+            prep_time=hit.prep_time,
+            cook_time=hit.cook_time,
+            ingredients=hit.ingredients or [],
+            steps=hit.steps or [],
+            tips=hit.tips or [],
+            quote=hit.quote,
+        )
 
 
-def structure_stored(recipe_id: int, use_cache: bool = True) -> None:
+def structure_stored(recipe_id: int, use_cache: bool = True, charged: bool = False) -> None:
     """Run the LLM on the transcript already stored for this recipe.
 
     use_cache=False forces a fresh answer (the "Rewrite from transcript" button).
+    charged=True means this memo's daily action was already counted (audio memos).
     """
     try:
         with Session(get_engine()) as db:
             r = db.get(Recipe, recipe_id)
             if r is None:  # deleted while queued
                 return
-            transcript = r.transcript
+            transcript, owner = r.transcript, r.user_id
         if not transcript.strip():
             raise llm.LLMError("There is no transcript to write a recipe from.")
         _set(recipe_id, status="structuring", error=None)
-        draft = _cached_draft(recipe_id, transcript) if use_cache else None
+        draft = _cached_draft(recipe_id, owner, transcript) if use_cache else None
         if draft is not None:
             log.info("recipe %s reused an identical transcript, no model call", recipe_id)
         else:
+            if not charged:
+                auth.spend(owner)  # counts against the account's daily allowance
             draft = llm.structure_recipe(transcript)
         with Session(get_engine()) as db:
             r = db.get(Recipe, recipe_id)
@@ -93,8 +110,11 @@ def structure_stored(recipe_id: int, use_cache: bool = True) -> None:
             db.commit()
     except Exception as e:  # readable reason, retry stays possible
         log.exception("structuring failed for %s", recipe_id)
-        _set(recipe_id, status="failed",
-             error=_reason(e, "Something went wrong while writing the recipe. Try again."))
+        _set(
+            recipe_id,
+            status="failed",
+            error=_reason(e, "Something went wrong while writing the recipe. Try again."),
+        )
 
 
 def process_audio(recipe_id: int) -> None:
@@ -103,13 +123,17 @@ def process_audio(recipe_id: int) -> None:
             r = db.get(Recipe, recipe_id)
             if r is None or not r.audio_path:
                 return
-            path = Path(r.audio_path)
+            path, owner = Path(r.audio_path), r.user_id
+        auth.spend(owner)  # one action covers transcription and writing
         _set(recipe_id, status="transcribing", error=None)
         transcript = eleven.transcribe(path)
         _set(recipe_id, transcript=transcript)
     except Exception as e:
         log.exception("transcription failed for %s", recipe_id)
-        _set(recipe_id, status="failed",
-             error=_reason(e, "Something went wrong while transcribing. Try again."))
+        _set(
+            recipe_id,
+            status="failed",
+            error=_reason(e, "Something went wrong while transcribing. Try again."),
+        )
         return
-    structure_stored(recipe_id)
+    structure_stored(recipe_id, charged=True)

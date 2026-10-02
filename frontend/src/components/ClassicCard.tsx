@@ -47,8 +47,8 @@ export default function ClassicCard({ c, size = "normal", onAdded }:
           className="transition-transform duration-[1.2s] ease-out group-hover/img:scale-[1.06]" />
       </div>
       <div className="index-card !rounded-none !border-0 flex flex-col px-6 pt-3.5 pb-6">
-        <div className="flex h-8 items-center justify-between gap-2">
-          <h3 className="truncate font-display text-lg font-bold">{c.title}</h3>
+        <div className="flex h-8 min-w-0 items-center justify-between gap-2">
+          <h3 className="min-w-0 truncate font-display text-lg font-bold">{c.title}</h3>
           <span className="chip shrink-0">{c.region}</span>
         </div>
         <p className="mt-3 text-sm font-semibold text-muted">{c.speaker_name}, {c.place}</p>

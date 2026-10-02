@@ -1,8 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <title>Salt &amp; Story</title>
   <rect width="64" height="64" rx="16" fill="#2E6B4C"/>
-  <path d="M14 15h36a7 7 0 0 1 7 7v17a7 7 0 0 1-7 7H31l-10 8v-8h-7a7 7 0 0 1-7-7V22a7 7 0 0 1 7-7z" fill="#F5B83D"/>
-  <circle cx="22" cy="30.5" r="3.6" fill="#1D3529"/>
-  <circle cx="32" cy="30.5" r="3.6" fill="#1D3529"/>
-  <circle cx="42" cy="30.5" r="3.6" fill="#1D3529"/>
+  <!-- steam, curled like a pair of quotation marks: the story rising from the pot -->
+  <path d="M25.5 21.5c-3.4-2.6 3.4-4.6 0-8.2" fill="none" stroke="#FFFDF8" stroke-width="3.4" stroke-linecap="round"/>
+  <path d="M36.5 21.5c-3.4-2.6 3.4-4.6 0-8.2" fill="none" stroke="#FFFDF8" stroke-width="3.4" stroke-linecap="round"/>
+  <!-- lid and knob -->
+  <rect x="29" y="23" width="6" height="3.4" rx="1.7" fill="#F5B83D"/>
+  <rect x="11" y="26.5" width="42" height="4.6" rx="2.3" fill="#F5B83D"/>
+  <!-- pot with handles -->
+  <path d="M14.5 33h35v6.5c0 7.2-5.8 13-13 13h-9c-7.2 0-13-5.8-13-13z" fill="#F5B83D"/>
+  <rect x="7.5" y="34.5" width="8" height="4" rx="2" fill="#F5B83D"/>
+  <rect x="48.5" y="34.5" width="8" height="4" rx="2" fill="#F5B83D"/>
+  <!-- a grain-of-salt highlight -->
+  <path d="M21 40.5c.4 3.4 2.6 6 5.8 6.8" fill="none" stroke="#FFFDF8" stroke-width="2.4" stroke-linecap="round" opacity=".55"/>
 </svg>

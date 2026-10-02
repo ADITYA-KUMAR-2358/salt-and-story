@@ -1,7 +1,8 @@
-import { GithubLogo, Heart, List, Plus, X } from "@phosphor-icons/react";
+import { GithubLogo, Heart, List, Plus, UserCircle, X } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { t } from "../strings";
+import { useAuth } from "../auth";
 import { LogoMark } from "./Brand";
 import ThemeToggle from "./ThemeToggle";
 import WarmUp from "./WarmUp";
@@ -17,6 +18,25 @@ const linkClass = ({ isActive }: { isActive: boolean }) =>
     isActive ? "bg-surface text-primary lift" : "text-muted hover:text-ink hover:bg-surface/60"
   }`;
 
+/** Avatar linking to the account page when signed in; a Sign in link otherwise. */
+function AccountButton() {
+  const { state } = useAuth();
+  if (state.status === "loading") return <span className="skeleton size-11 rounded-full" aria-hidden="true" />;
+  if (state.status === "signed-out") {
+    if (state.config?.mode !== "google") return null;
+    return <Link to="/signin" className="btn btn-ghost whitespace-nowrap">{t.account.signIn}</Link>;
+  }
+  const { user } = state;
+  return (
+    <Link to="/account" aria-label={`${t.account.menu}: ${user.name}`} title={user.email}
+      className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-line bg-surface hover:border-primary">
+      {user.picture
+        ? <img src={user.picture} alt="" referrerPolicy="no-referrer" className="size-full object-cover" />
+        : <UserCircle size={26} className="text-muted" aria-hidden />}
+    </Link>
+  );
+}
+
 function Header() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
@@ -27,17 +47,18 @@ function Header() {
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <Link to="/" className="flex items-center gap-2.5 rounded-full pr-2" aria-label={`${t.appName}, home`}>
           <LogoMark size={40} />
-          <span className="hidden font-display text-xl font-extrabold tracking-tight whitespace-nowrap min-[360px]:inline">{t.appName}</span>
+          <span className="hidden font-display text-xl font-extrabold tracking-tight whitespace-nowrap min-[400px]:inline">{t.appName}</span>
         </Link>
 
-        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+        <nav aria-label="Main" className="hidden items-center gap-1 lg:flex">
           {LINKS.map((l) => <NavLink key={l.to} to={l.to} className={linkClass}>{l.label}</NavLink>)}
           <ThemeToggle />
+          <AccountButton />
           <Link to="/add" className="btn btn-primary ml-1"><Plus size={18} weight="bold" /> {t.nav.add}</Link>
         </nav>
 
-        <div className="flex items-center gap-1.5 md:hidden">
-          <ThemeToggle />
+        <div className="flex items-center gap-1.5 lg:hidden">
+          <AccountButton />
           <Link to="/add" className="btn btn-primary btn-icon" aria-label={t.nav.add}><Plus size={20} weight="bold" /></Link>
           <button className="btn btn-icon" aria-expanded={open} aria-controls="mobile-nav"
             aria-label={open ? t.nav.close : t.nav.menu} onClick={() => setOpen((o) => !o)}>
@@ -47,9 +68,13 @@ function Header() {
       </div>
 
       {open && (
-        <nav id="mobile-nav" aria-label="Main" className="pop lift absolute inset-x-4 top-full grid gap-1 rounded-[var(--r)] border border-line bg-surface p-2 md:hidden">
+        <nav id="mobile-nav" aria-label="Main" className="pop lift absolute inset-x-4 top-full grid gap-1 rounded-[var(--r)] border border-line bg-surface p-2 lg:hidden">
           <NavLink to="/" end className={linkClass}>{t.nav.home}</NavLink>
           {LINKS.map((l) => <NavLink key={l.to} to={l.to} className={linkClass}>{l.label}</NavLink>)}
+          <div className="mt-1 flex items-center justify-between border-t border-line px-4 pt-2">
+            <span className="font-semibold text-muted">{t.nav.theme}</span>
+            <ThemeToggle />
+          </div>
         </nav>
       )}
     </header>

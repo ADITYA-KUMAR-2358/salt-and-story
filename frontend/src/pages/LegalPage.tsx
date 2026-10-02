@@ -2,10 +2,28 @@ import { Link } from "react-router-dom";
 import type { LegalDoc } from "../content/legal";
 import { useTitle } from "../hooks";
 
+/** Turns https:// links in policy text into real links (opening in a new tab). */
+function Linkified({ text }: { text: string }) {
+  const parts = text.split(/(https:\/\/[^\s]*[^\s.,;:!?)])/g);
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.startsWith("https://") ? (
+          <a key={i} href={part} target="_blank" rel="noopener noreferrer"
+            className="font-semibold text-primary underline break-all">
+            {part.replace(/^https:\/\//, "")}
+          </a>
+        ) : part,
+      )}
+    </>
+  );
+}
+
+const slug = (h: string) => h.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
 /** Privacy, Terms and Accessibility share one calm, readable layout. */
 export default function LegalPage({ doc }: { doc: LegalDoc }) {
   useTitle(doc.title);
-  const slug = (h: string) => h.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
   return (
     <article className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
       <header className="max-w-3xl">
@@ -31,7 +49,7 @@ export default function LegalPage({ doc }: { doc: LegalDoc }) {
             <section key={s.heading} id={slug(s.heading)} aria-labelledby={`${slug(s.heading)}-h`} className="scroll-mt-6">
               <h2 id={`${slug(s.heading)}-h`} className="font-display text-2xl font-extrabold">{s.heading}</h2>
               <div className="mt-3 grid gap-3 text-[1.04rem] leading-relaxed">
-                {s.body.map((para) => <p key={para}>{para}</p>)}
+                {s.body.map((para) => <p key={para}><Linkified text={para} /></p>)}
               </div>
             </section>
           ))}

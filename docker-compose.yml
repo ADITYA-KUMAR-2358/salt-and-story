@@ -11,8 +11,13 @@ services:
     environment:
       APP_ENV: production
       DATA_DIR: /srv/data
+      # Google sign-in is used when GOOGLE_CLIENT_ID is set in .env. Without it, production
+      # refuses requests; for a local try-out run:  AUTH_MODE=dev docker compose up
+      AUTH_MODE: ${AUTH_MODE:-}
       # Same origin through nginx; this only matters if you call the API directly.
       CORS_ORIGINS: http://localhost:8080
+      # nginx (the web service) sets X-Real-IP from the real connection.
+      CLIENT_IP_HEADER: x-real-ip
     volumes:
       - salt-data:/srv/data
     restart: unless-stopped

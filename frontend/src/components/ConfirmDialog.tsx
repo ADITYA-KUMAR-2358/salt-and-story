@@ -23,6 +23,7 @@ export default function ConfirmDialog({ open, title, body, confirmLabel, cancelL
   }, [open]);
 
   return (
+    // oxlint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- backdrop click closes; Esc is handled by <dialog> itself
     <dialog
       ref={ref}
       onCancel={(e) => { e.preventDefault(); onCancel(); }}

@@ -4,7 +4,7 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useBlocker, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { api, IN_PROGRESS, media, type Recipe, type RecipeDraft } from "../api";
+import { api, IN_PROGRESS, media, saveBlob, type Recipe, type RecipeDraft } from "../api";
 import { useCapabilities } from "../components/Capabilities";
 import ConfirmDialog from "../components/ConfirmDialog";
 import CookMode from "../components/CookMode";
@@ -80,11 +80,12 @@ function PhotoPanel({ recipe, onChange }: { recipe: Recipe; onChange: (r: Recipe
 
 // ---------------------------------------------------------------- read view
 
+const toggle = (set: Set<number>, n: number) => { const next = new Set(set); if (next.has(n)) next.delete(n); else next.add(n); return next; };
+
 function ReadView({ recipe }: { recipe: Recipe }) {
   const [gotIng, setGotIng] = useState<Set<number>>(new Set());
   const [doneSteps, setDoneSteps] = useState<Set<number>>(new Set());
   const [showTranscript, setShowTranscript] = useState(false);
-  const toggle = (set: Set<number>, n: number) => { const s = new Set(set); if (s.has(n)) s.delete(n); else s.add(n); return s; };
 
   return (
     <>
@@ -432,9 +433,13 @@ export default function RecipePage() {
                 </button>
                 {menu && (
                   <div role="menu" className="pop lift absolute right-0 z-20 mt-2 grid w-64 gap-1 rounded-[var(--r)] border border-line bg-surface p-2 sm:left-0">
-                    <a role="menuitem" className="btn btn-ghost !justify-start" href={api.pdfUrl(id)} target="_blank" rel="noreferrer" onClick={() => setMenu(false)}>
+                    <button role="menuitem" className="btn btn-ghost !justify-start" onClick={async () => {
+                      setMenu(false);
+                      try { saveBlob(await api.recipePdf(id), `${recipe.title.replace(/[^\w-]+/g, "-").toLowerCase()}.pdf`); }
+                      catch (e) { toast.error((e as Error).message); }
+                    }}>
                       <DownloadSimple size={18} /> {t.recipe.pdf}
-                    </a>
+                    </button>
                     {canRewrite && (
                       <button role="menuitem" className="btn btn-ghost !justify-start" onClick={() => { setMenu(false); setConfirm("rewrite"); }}>
                         <ArrowCounterClockwise size={18} /> {t.recipe.restructure}

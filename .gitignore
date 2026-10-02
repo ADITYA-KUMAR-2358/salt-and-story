@@ -26,3 +26,12 @@ frontend/.env
 
 # local Windows PDF libraries (backend/.gtk, created by scripts/setup-pdf-windows.ps1)
 backend/.gtk/
+
+# private notes, not for the public repo
+post-salt-and-story.md
+docs/REVENUE.md
+
+# test and coverage output
+.coverage
+coverage.xml
+htmlcov/

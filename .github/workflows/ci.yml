@@ -1,78 +1,169 @@
+# Every push and pull request runs the full suite. The final "All checks passed" job
+# is the one to mark as required in branch protection (Settings > Branches > main).
 name: ci
+
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
-jobs:
-  secrets:
-    name: Secret scan
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: No .env files tracked
-        run: |
-          if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
-            echo "A .env file is tracked. Remove it and rotate its keys."; exit 1
-          fi
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
+  # ---------------------------------------------------------------- backend
   backend:
+    name: Backend (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.13", "3.14"]
     defaults:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
           cache: pip
-          cache-dependency-path: backend/requirements.txt
-      - run: pip install -r requirements.txt
-      - run: ruff check .
-      - run: pytest -q
-      - name: Docker image builds and runs as non-root
-        run: |
-          docker build -t salt-api .
-          docker run -d --name api -p 8000:8000 salt-api
-          for i in $(seq 1 20); do curl -fsS localhost:8000/health && break; sleep 1; done
-          test "$(docker exec api id -u)" != "0"
+          cache-dependency-path: backend/requirements-dev.txt
+      - name: Install PDF libraries (so the real PDF test runs)
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
+      - run: pip install -r requirements-dev.txt
+      - name: Lint
+        run: ruff check .
+      - name: Formatting
+        run: ruff format --check .
+      - name: Tests (deprecations are errors, coverage must stay >= 90%)
+        run: pytest -q -W error::DeprecationWarning --cov=app --cov-report=term --cov-report=xml
+      - name: Coverage report
+        if: always() && matrix.python == '3.14'
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-xml
+          path: backend/coverage.xml
+          if-no-files-found: ignore
 
-  compose:
-    name: Docker images build
+  backend-audit:
+    name: Backend dependency audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Build web and api images
-        run: |
-          cp .env.example .env
-          docker compose build
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+      - run: pip install pip-audit==2.10.1
+      - name: Known vulnerabilities in runtime dependencies
+        run: pip-audit -r backend/requirements.txt --strict
 
+  # ---------------------------------------------------------------- frontend
   frontend:
+    name: Frontend (Node 24)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: frontend
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version-file: frontend/.nvmrc
           cache: npm
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
-      - run: npm run build
+      - name: Lint (zero warnings)
+        run: npm run lint
+      - name: Type check
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
         env:
           VITE_API_URL: https://salt-and-story-api.onrender.com
       - name: No secrets in the built bundle
         run: |
           if grep -rEn 'AIza[0-9A-Za-z_-]{20,}|AQ\.[0-9A-Za-z_-]{20,}|sk-[0-9A-Za-z]{20,}|xi-api-key' dist; then
-            echo "Something that looks like a secret is in dist/"; exit 1
+            echo "::error::Something that looks like a secret is in dist/"; exit 1
           fi
+      - name: Dependency audit (high and critical)
+        run: npm audit --audit-level=high --omit=dev
+
+  # ---------------------------------------------------------------- secrets
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Gitleaks (full history)
+        run: docker run --rm -v "$PWD:/repo" ghcr.io/gitleaks/gitleaks:latest git /repo --redact --verbose --exit-code 1
+      - name: No .env files tracked
+        run: |
+          if git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v '\.env\.example$'; then
+            echo "::error::A .env file is tracked. Remove it and rotate its keys."; exit 1
+          fi
+
+  # ---------------------------------------------------------------- docker + browser
+  e2e:
+    name: Docker stack + browser tests
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Configure (no secrets; one local account)
+        run: |
+          cp .env.example .env
+          echo "AUTH_MODE=dev" >> .env
+          echo "SESSION_SECRET=ci-only-not-secret" >> .env
+      - name: Build and start (waits for health checks)
+        run: docker compose up -d --build --wait --wait-timeout 180
+      - name: Containers run as non-root
+        run: |
+          test "$(docker compose exec -T api id -u)" != "0"
+          test "$(docker compose exec -T web id -u)" != "0"
+      - name: Install Playwright
+        working-directory: e2e
+        run: npm ci && npx playwright install --with-deps chromium
+      - name: Browser tests (flows, links, every page at 6 widths)
+        working-directory: e2e
+        env:
+          WEB: http://localhost:8080
+          API: http://localhost:8080
+          REQUIRE_PDF: "1"
+        run: npm test
+      - name: Container logs
+        if: failure()
+        run: docker compose logs --no-color
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-screenshots
+          path: e2e/shots
+          if-no-files-found: ignore
+      - if: always()
+        run: docker compose down -v
+
+  # ---------------------------------------------------------------- gate
+  all-checks:
+    name: All checks passed
+    if: always()
+    needs: [backend, backend-audit, frontend, secrets, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Every job must succeed
+        run: |
+          echo '${{ toJSON(needs) }}' | jq -e 'to_entries | all(.value.result == "success")' \
+            || { echo "::error::One or more checks failed"; exit 1; }

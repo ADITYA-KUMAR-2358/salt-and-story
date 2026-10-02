@@ -9,23 +9,30 @@ import { t } from "../strings";
 
 const STORE = "salt-and-story:book";
 
-function loadPrefs(): { title: string; dedication: string; order: number[] } {
+interface Prefs { title: string; dedication: string; order: number[]; by: string | null }
+
+function loadPrefs(): Prefs {
   try {
     const v = JSON.parse(localStorage.getItem(STORE) ?? "{}");
-    return { title: v.title ?? t.appName, dedication: v.dedication ?? "", order: Array.isArray(v.order) ? v.order : [] };
-  } catch { return { title: t.appName, dedication: "", order: [] }; }
+    return {
+      title: v.title ?? t.appName, dedication: v.dedication ?? "",
+      order: Array.isArray(v.order) ? v.order : [], by: typeof v.by === "string" ? v.by : null,
+    };
+  } catch { return { title: t.appName, dedication: "", order: [], by: null }; }
 }
 
+const joinNames = (names: string[]) =>
+  names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+
 /** A live HTML twin of the PDF cover, so choices are visible before building. */
-function CoverPreview({ title, dedication, speakers }: { title: string; dedication: string; speakers: string[] }) {
-  const names = speakers.length <= 2 ? speakers.join(" and ") : `${speakers.slice(0, -1).join(", ")} and ${speakers.at(-1)}`;
+function CoverPreview({ title, dedication, toldBy }: { title: string; dedication: string; toldBy: string }) {
   return (
     <div className="lift mx-auto aspect-[148/210] w-full max-w-[19rem] overflow-hidden rounded-[10px] bg-[#2e6b4c] text-[#f6fbf2]" aria-label="Cover preview" role="img">
       <div className="gingham h-[12%]" />
       <div className="grid gap-3 px-[9%] pt-[16%]">
         <p className="font-display text-[clamp(1.4rem,3.4vw,2rem)] leading-[1.05] font-extrabold break-words">{title || t.appName}</p>
         <p className="text-sm text-[#d6ead9] italic">{t.tagline}</p>
-        {names && <p className="mt-[18%] text-xs text-[#d6ead9]">Recipes told by {names}</p>}
+        {toldBy.trim() && <p className="mt-[18%] text-xs break-words text-[#d6ead9]">Recipes told by {toldBy.trim()}</p>}
         {dedication && <p className="font-hand text-2xl text-[#f5b83d]">For {dedication}</p>}
       </div>
     </div>
@@ -34,11 +41,13 @@ function CoverPreview({ title, dedication, speakers }: { title: string; dedicati
 
 export default function BookPage() {
   useTitle(t.book.title);
-  const prefs = useMemo(loadPrefs, []);
+  const prefs = useMemo(() => loadPrefs(), []);
   const [recipes, setRecipes] = useState<Recipe[] | null>(null);
   const [order, setOrder] = useState<number[]>(prefs.order);
   const [title, setTitle] = useState(prefs.title);
   const [dedication, setDedication] = useState(prefs.dedication);
+  // null = use the cooks' names automatically; a string = exactly what the reader typed ("" hides the line)
+  const [by, setBy] = useState<string | null>(prefs.by);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [url, setUrl] = useState<string | null>(null);
@@ -52,14 +61,14 @@ export default function BookPage() {
     }).catch((e: Error) => setError(e.message));
   }, []);
   useEffect(() => {
-    try { localStorage.setItem(STORE, JSON.stringify({ title, dedication, order })); } catch { /* private mode */ }
-  }, [title, dedication, order]);
+    try { localStorage.setItem(STORE, JSON.stringify({ title, dedication, order, by })); } catch { /* private mode */ }
+  }, [title, dedication, order, by]);
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
   // Any change makes the built PDF stale.
-  useEffect(() => { setUrl(null); }, [order, title, dedication]);
+  useEffect(() => { setUrl(null); }, [order, title, dedication, by]);
 
   const byId = new Map((recipes ?? []).map((r) => [r.id, r]));
-  const speakers = [...new Set(order.map((id) => byId.get(id)?.speaker_name).filter(Boolean) as string[])].sort();
+  const speakers = [...new Set(order.map((id) => byId.get(id)?.speaker_name).filter(Boolean) as string[])].toSorted();
   const toggle = (id: number) => setOrder((o) => (o.includes(id) ? o.filter((x) => x !== id) : [...o, id]));
   const move = (i: number, d: number) => setOrder((o) => {
     const j = i + d;
@@ -78,7 +87,7 @@ export default function BookPage() {
     if (order.length === 0) return setError(t.book.needOne);
     setBusy(true);
     setError(null);
-    try { setUrl(URL.createObjectURL(await api.bookBlob(order, title.trim() || t.appName, dedication.trim()))); }
+    try { setUrl(URL.createObjectURL(await api.bookBlob(order, title.trim() || t.appName, dedication.trim(), by))); }
     catch (e) { setError((e as Error).message); }
     finally { setBusy(false); }
   }
@@ -110,7 +119,7 @@ export default function BookPage() {
             <fieldset>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <legend className="font-display text-2xl font-extrabold">{t.book.pick}</legend>
-                <div className="flex gap-1">
+                <div className="flex flex-wrap gap-1">
                   {recipes.some((r) => r.favorite) && (
                     <button type="button" className="btn btn-ghost !min-h-10"
                       onClick={() => setOrder(recipes.filter((r) => r.favorite).map((r) => r.id))}>
@@ -156,6 +165,7 @@ export default function BookPage() {
                 <p className="hint mb-3">{t.book.orderHint}</p>
                 <ol className="grid gap-2">
                   {order.map((id, i) => (
+                    // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- drag to reorder; the arrow buttons are the keyboard path
                     <li key={id} draggable onDragStart={() => setDragging(id)} onDragEnd={() => setDragging(null)}
                       onDragOver={(e) => e.preventDefault()} onDrop={() => dropOn(i)}
                       className={`flex items-center gap-2 rounded-full border border-line bg-surface py-1 pr-1 pl-3 transition-opacity ${dragging === id ? "opacity-40" : ""}`}>
@@ -170,7 +180,7 @@ export default function BookPage() {
               </div>
             )}
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid items-start gap-5 sm:grid-cols-2">
               <div className="field">
                 <label htmlFor="bt" className="label">{t.book.bookTitle}</label>
                 <input id="bt" className="input" value={title} maxLength={120} onChange={(e) => setTitle(e.target.value)} />
@@ -181,13 +191,26 @@ export default function BookPage() {
                   onChange={(e) => setDedication(e.target.value)} aria-describedby="bd-h" />
                 <p id="bd-h" className="hint">{t.book.dedicationHint}</p>
               </div>
+              <div className="field sm:col-span-2">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <label htmlFor="bb" className="label">{t.book.toldBy}</label>
+                  {by !== null && (
+                    <button type="button" className="text-sm font-semibold text-primary underline" onClick={() => setBy(null)}>
+                      {t.book.toldByReset}
+                    </button>
+                  )}
+                </div>
+                <input id="bb" className="input" value={by ?? joinNames(speakers)} maxLength={200}
+                  placeholder={t.book.toldByPlaceholder} onChange={(e) => setBy(e.target.value)} aria-describedby="bb-h" />
+                <p id="bb-h" className="hint">{by === null ? t.book.toldByAuto : t.book.toldByHint}</p>
+              </div>
             </div>
           </div>
 
           <div className="grid content-start gap-6 lg:sticky lg:top-6">
             <div className="gingham-sage grid gap-5 rounded-[var(--r)] p-6 sm:p-8">
               <p className="text-center font-semibold text-muted">{t.book.cover}</p>
-              <CoverPreview title={title} dedication={dedication} speakers={speakers} />
+              <CoverPreview title={title} dedication={dedication} toldBy={by ?? joinNames(speakers)} />
               <p className="text-center text-sm text-muted">{t.book.pages}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">

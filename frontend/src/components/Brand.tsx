@@ -1,13 +1,18 @@
-/** The Salt & Story mark: a marigold speech bubble with three grains of salt. */
+/**
+ * The Salt & Story mark: a lidded cooking pot whose two curls of steam rise like
+ * quotation marks. Cooking and storytelling in one shape; reads at 16px.
+ */
 export function LogoMark({ size = 36, className = "" }: { size?: number; className?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true" className={className}>
-      <rect width="64" height="64" rx="16" fill="var(--primary)" />
-      <path
-        d="M14 15h36a7 7 0 0 1 7 7v17a7 7 0 0 1-7 7H31l-10 8v-8h-7a7 7 0 0 1-7-7V22a7 7 0 0 1 7-7z"
-        fill="var(--accent)"
-      />
-      {[22, 32, 42].map((cx) => <circle key={cx} cx={cx} cy="30.5" r="3.6" fill="#1D3529" />)}
+      <rect width="64" height="64" rx="16" fill="#2E6B4C" />
+      <path d="M25.5 21.5c-3.4-2.6 3.4-4.6 0-8.2M36.5 21.5c-3.4-2.6 3.4-4.6 0-8.2" fill="none" stroke="#FFFDF8" strokeWidth="3.4" strokeLinecap="round" />
+      <rect x="29" y="23" width="6" height="3.4" rx="1.7" fill="#F5B83D" />
+      <rect x="11" y="26.5" width="42" height="4.6" rx="2.3" fill="#F5B83D" />
+      <path d="M14.5 33h35v6.5c0 7.2-5.8 13-13 13h-9c-7.2 0-13-5.8-13-13z" fill="#F5B83D" />
+      <rect x="7.5" y="34.5" width="8" height="4" rx="2" fill="#F5B83D" />
+      <rect x="48.5" y="34.5" width="8" height="4" rx="2" fill="#F5B83D" />
+      <path d="M21 40.5c.4 3.4 2.6 6 5.8 6.8" fill="none" stroke="#FFFDF8" strokeWidth="2.4" strokeLinecap="round" opacity=".55" />
     </svg>
   );
 }

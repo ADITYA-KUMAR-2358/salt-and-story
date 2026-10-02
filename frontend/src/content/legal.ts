@@ -15,7 +15,15 @@ export const privacy: LegalDoc = {
       heading: "What you give us",
       body: [
         "Voice memos you record or upload, transcripts you paste, recipes you write or edit, photos you add, and the names you type for the people telling the recipes.",
-        "We do not ask for an account, an email address or a phone number.",
+        "When you sign in with Google, Google tells us your name, email address and profile photo link. We never see or store your Google password.",
+      ],
+    },
+    {
+      heading: "Your account",
+      body: [
+        "Your account keeps your recipes separate from everyone else's: other people cannot see or change them.",
+        "We store your name, email address, profile photo link, when you last signed in, and how many recipes you made today (for the daily limit).",
+        "Your session is kept in your browser so you stay signed in. Sign out, or delete your account, from the Account page.",
       ],
     },
     {
@@ -38,7 +46,8 @@ export const privacy: LegalDoc = {
     {
       heading: "Cookies and local storage",
       body: [
-        "We do not set cookies. Your browser remembers a few preferences on your own device: light or dark mode, and the title, dedication and order of your book. Clearing your browser's site data removes them.",
+        "We do not set cookies. Your browser keeps your sign-in session and a few preferences on your own device: light or dark mode, and the title, dedication and order of your book. Signing out or clearing your browser's site data removes them.",
+        "The Sign in with Google button is provided by Google and is governed by Google's privacy policy.",
       ],
     },
     {
@@ -51,6 +60,7 @@ export const privacy: LegalDoc = {
       heading: "Deleting your data",
       body: [
         "Deleting a recipe removes it from the database together with its audio, photo and narration files. Backups you downloaded stay on your device until you delete them.",
+        "Deleting your account on the Account page removes the account and every recipe, photo, voice memo and narration in it.",
         "Copies already sent to ElevenLabs or Google are handled under their own privacy policies.",
       ],
     },
@@ -63,7 +73,7 @@ export const privacy: LegalDoc = {
     {
       heading: "Questions",
       body: [
-        "Salt & Story is built and maintained by Aditya Kumar. You can reach him through his GitHub profile, github.com/ADITYA-KUMAR-2358.",
+        "Salt & Story is built and maintained by Aditya Kumar. You can reach him through his GitHub profile, https://github.com/ADITYA-KUMAR-2358.",
       ],
     },
   ],
@@ -78,6 +88,12 @@ export const terms: LegalDoc = {
       heading: "What this is",
       body: [
         "Salt & Story is a free, open-source demo built for the DEV Hacktoberfest Weekend Challenge. It is offered as it is, without any warranty, and it may be slow, offline, changed or shut down at any time.",
+      ],
+    },
+    {
+      heading: "Your account",
+      body: [
+        "You sign in with your Google account and are responsible for what happens in your Salt & Story account. The owner of a copy of Salt & Story may limit sign-in to invited people only.",
       ],
     },
     {
@@ -102,7 +118,7 @@ export const terms: LegalDoc = {
     {
       heading: "Fair use of the free service",
       body: [
-        "To keep the free model and transcription available for everyone, the demo limits how many memos each visitor can send in a short time and how many recipes it writes each day. Please do not try to get around these limits or overload the service.",
+        "To keep the free model and transcription available for everyone, each account can have 5 recipes written (or narrated) by the AI per day, and there is also a limit on how many it can send in a short time. Writing recipes by hand, editing, photos and books do not count. Please do not create extra accounts or otherwise try to get around these limits.",
       ],
     },
     {
@@ -154,7 +170,7 @@ export const accessibility: LegalDoc = {
     {
       heading: "Tell us what is hard to use",
       body: [
-        "If something gets in your way, please tell Aditya Kumar through github.com/ADITYA-KUMAR-2358. Describe the page, what you were trying to do, and the device or assistive technology you use.",
+        "If something gets in your way, please tell Aditya Kumar through his GitHub profile, https://github.com/ADITYA-KUMAR-2358. Describe the page, what you were trying to do, and the device or assistive technology you use.",
       ],
     },
   ],
