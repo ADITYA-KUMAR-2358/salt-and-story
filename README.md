@@ -22,6 +22,7 @@ Built by **Aditya Kumar** ([@ADITYA-KUMAR-2358](https://github.com/ADITYA-KUMAR-
 - **Pages**: landing, recipes, add a memo, recipe, make the book, guide (with FAQ), privacy, terms of use, accessibility, photo credits, plus 404, error, offline and server-waking states.
 - **Make the book**: choose and order recipes, add a dedication, see a live cover preview, download an A5 cookbook PDF. Each recipe is a spread: photo, story and quote on the left, ingredients and method on the right.
 - **Start fast**: six American and European family classics (fictional voices, real dishes, openly licensed photos) can be added in one click.
+- <img width="1280" height="640" alt="salt-and-story-explainer" src="https://github.com/user-attachments/assets/3a93e9d8-6a0b-4f78-9277-b37a5168a2fc" />
 
 ## Why open innovation matters
 
