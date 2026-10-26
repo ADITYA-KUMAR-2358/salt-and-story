@@ -1,13 +1,13 @@
 # Runtime dependencies (pinned; Dependabot proposes updates).
-fastapi==0.142.2
+fastapi==0.161.1
 uvicorn[standard]==0.54.0
 python-multipart==0.0.32
-sqlmodel==0.0.47
+sqlmodel==0.0.48
 httpx==0.28.1
 jinja2==3.1.6
 weasyprint==70.0
-pillow==12.3.0
+pillow==13.0.0
 python-dotenv==1.2.4
-google-auth==2.59.1
+google-auth==2.62.0
 requests==2.34.2
 itsdangerous==2.2.0
