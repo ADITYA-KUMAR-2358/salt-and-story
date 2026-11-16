@@ -1,4 +1,4 @@
-FROM python:3.14-slim
+FROM python:3.15-slim
 
 # WeasyPrint native libraries (Pango, HarfBuzz, Cairo) and a fallback font.
 RUN apt-get update && apt-get install -y --no-install-recommends \
